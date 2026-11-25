@@ -1937,6 +1937,7 @@ size_t WiFiDrv::bleWrite(const uint8_t* data, size_t len) {
     return res;
 }
 
+#if 0
 int WiFiDrv::socket(uint8_t domain, uint8_t type, uint8_t protocol)
 {
     uint8_t sock = 255;
@@ -2122,5 +2123,6 @@ int WiFiDrv::socketSendTo(
 
     return ((uint16_t)result[0] << 8) | result[1];
 }
+#endif
 
 WiFiDrv wiFiDrv;

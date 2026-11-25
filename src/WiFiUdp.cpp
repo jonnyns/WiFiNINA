@@ -28,6 +28,7 @@ extern "C" {
 #include "utility/server_drv.h"
 #include "utility/wifi_drv.h"
 #include "utility/WiFiSocketBuffer.h"
+#include "utility/wifi_socket_drv.h"	// JONOS
 
 #include "WiFi.h"
 #include "WiFiUdp.h"
@@ -247,18 +248,29 @@ bool WiFiUDP::ipv6Info(uint8_t* rc, uint8_t* ip6, uint32_t* heap_free_p, uint32_
     return result;
 }
 
-int WiFiUDP::socket(int domain, int type, int protocol)
+
+bool WiFiUDP::socketJoinGroup6(
+    int fd,
+    const uint8_t group[16])
 {
-    return WiFiDrv::socket(domain, type, protocol);
+    if (fd < 0 || fd > 255 || !group)
+        return false;
+
+    return WiFiSocketDrv::socketJoinGroup6(
+        (uint8_t)fd, group);
 }
 
+int WiFiUDP::socket(int domain, int type, int protocol)
+{
+    return WiFiSocketDrv::socket(domain, type, protocol);
+}
 
 bool WiFiUDP::socketBind(int fd, const uint8_t ip6[16], uint16_t port)
 {
 		if (fd < 0 || fd > 255)
         return false;
 
-    return WiFiDrv::socketBind(
+    return WiFiSocketDrv::socketBind(
         (uint8_t)fd, ip6, port);
 }
 
@@ -272,7 +284,7 @@ int WiFiUDP::socketRecvFrom(
 	if (fd < 0 || fd > 255)
         return false;
 
-    return WiFiDrv::socketRecvFrom(
+    return WiFiSocketDrv::socketRecvFrom(
         (uint8_t)fd, srcIp6, srcPort, buffer, bufferSize);
 }
 
@@ -287,6 +299,6 @@ int WiFiUDP::socketSendTo(
         (!buffer && size != 0))
         return -1;
 
-    return WiFiDrv::socketSendTo(
+    return WiFiSocketDrv::socketSendTo(
         (uint8_t)fd, ip6, port, buffer, size);
 }
