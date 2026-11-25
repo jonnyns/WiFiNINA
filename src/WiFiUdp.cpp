@@ -239,3 +239,54 @@ bool WiFiUDP::packetInfo(IPAddress* pSrcIp,
   return result;
 }
 
+bool WiFiUDP::ipv6Info(uint8_t* rc, uint8_t* ip6, uint32_t* heap_free_p, uint32_t* heap_min_p, uint32_t* heap_largest_p)
+{
+
+    bool result = WiFiDrv::getIpv6Info(rc, ip6, heap_free_p, heap_min_p, heap_largest_p);
+     
+    return result;
+}
+
+int WiFiUDP::socket(int domain, int type, int protocol)
+{
+    return WiFiDrv::socket(domain, type, protocol);
+}
+
+
+bool WiFiUDP::socketBind(int fd, const uint8_t ip6[16], uint16_t port)
+{
+		if (fd < 0 || fd > 255)
+        return false;
+
+    return WiFiDrv::socketBind(
+        (uint8_t)fd, ip6, port);
+}
+
+int WiFiUDP::socketRecvFrom(
+    int fd,
+    uint8_t srcIp6[16],
+    uint16_t* srcPort,
+    uint8_t* buffer,
+    uint16_t bufferSize)
+{
+	if (fd < 0 || fd > 255)
+        return false;
+
+    return WiFiDrv::socketRecvFrom(
+        (uint8_t)fd, srcIp6, srcPort, buffer, bufferSize);
+}
+
+int WiFiUDP::socketSendTo(
+    int fd,
+    const uint8_t ip6[16],
+    uint16_t port,
+    const uint8_t* buffer,
+    uint16_t size)
+{
+    if (fd < 0 || fd > 255 || !ip6 ||
+        (!buffer && size != 0))
+        return -1;
+
+    return WiFiDrv::socketSendTo(
+        (uint8_t)fd, ip6, port, buffer, size);
+}

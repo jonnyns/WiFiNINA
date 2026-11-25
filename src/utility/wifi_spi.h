@@ -126,6 +126,22 @@ enum {
 
     // Low-level BSD-like sockets functions.
     // From 0x70 to 0x7F
+    SOCKET_SOCKET            = 0x70,
+    SOCKET_CLOSE             = 0x71,
+    SOCKET_ERRNO             = 0X72,
+    SOCKET_BIND              = 0X73,
+    SOCKET_LISTEN            = 0X74,
+    SOCKET_ACCEPT            = 0X75,
+    SOCKET_CONNECT           = 0X76,
+    SOCKET_SEND              = 0X77,
+    SOCKET_RECV              = 0X78,
+    SOCKET_SENDTO            = 0X79,
+    SOCKET_RECVFROM          = 0X7A,
+    SOCKET_IOCTL             = 0X7B,
+    SOCKET_POLL              = 0X7C,
+    SOCKET_SETSOCKOPT        = 0X7D,
+    SOCKET_GETSOCKOPT        = 0X7E,
+    SOCKET_GETPEERNAME       = 0x7F
 };
 
 

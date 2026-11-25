@@ -67,9 +67,23 @@ private:
     static void getRemoteData(uint8_t sock, uint8_t *ip, uint8_t *port);
     static bool getPacketInfo(
         uint8_t sock, uint8_t *srcip, uint8_t *srcport, uint8_t *dstip);
-
+    static bool getIpv6Info(uint8_t* rc, uint8_t* ip6, uint32_t* heap_free, uint32_t* heap_min, uint32_t* heap_largest);
+		
 public:
-
+		static int socket(uint8_t domain, uint8_t type, uint8_t protocol);
+		static bool socketBind(uint8_t sock, const uint8_t ip6[16], uint16_t port);
+		static int socketRecvFrom(
+    int fd,
+    uint8_t srcIp6[16],
+    uint16_t* srcPort,
+    uint8_t* buffer,
+    uint16_t bufferSize);
+		static int socketSendTo(
+    uint8_t sock,
+    const uint8_t ip6[16],
+    uint16_t port,
+    const uint8_t* buffer,
+    uint16_t size);
     /*
      * Driver initialization
      */

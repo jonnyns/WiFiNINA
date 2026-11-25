@@ -83,6 +83,12 @@ public:
   // The destination IP pointer may be nullptr.
 	// The source IP and source port pointers must not be nullptr.
   bool packetInfo(IPAddress* pSrcIp, uint16_t* pSrcPort, IPAddress* pDstIp);
+	bool ipv6Info(uint8_t* rc, uint8_t* ip6, uint32_t* heap_free, uint32_t* heap_min, uint32_t* heap_largest);
+	int socket(int domain, int type, int protocol);
+//	bool socketBind(int fd, uint16_t port, int domain);
+	bool socketBind(int fd, const uint8_t ip6[16], uint16_t port);
+	int socketRecvFrom(int fd, uint8_t srcIp6[16], uint16_t* srcPort, uint8_t* buffer, uint16_t bufferSize);
+	int socketSendTo(int fd, const uint8_t ip6[16], uint16_t port, const uint8_t* buffer, uint16_t size);
 
   friend class WiFiDrv;
 };
