@@ -274,31 +274,38 @@ bool WiFiUDP::socketBind(int fd, const uint8_t ip6[16], uint16_t port)
         (uint8_t)fd, ip6, port);
 }
 
-int WiFiUDP::socketRecvFrom(
-    int fd,
-    uint8_t srcIp6[16],
-    uint16_t* srcPort,
-    uint8_t* buffer,
-    uint16_t bufferSize)
+
+//int WiFiUDP::socketRecvFrom(
+//    int fd,
+//    uint8_t srcIp6[16],
+//    uint16_t* srcPort,
+//		uint8_t dstIp6[16],
+//    uint8_t* buffer,
+ //   uint16_t bufferSize)
+int WiFiUDP::socketRecvFrom(int fd, WiFiIPv6Endpoint* source, WiFiIPv6Endpoint* destination, uint8_t* buffer, uint16_t bufferSize)
 {
 	if (fd < 0 || fd > 255)
         return false;
+			
+//	Serial.print(fd);
+//	Serial.print(" ");
 
     return WiFiSocketDrv::socketRecvFrom(
-        (uint8_t)fd, srcIp6, srcPort, buffer, bufferSize);
+        (uint8_t)fd, source, destination, buffer, bufferSize);
 }
 
-int WiFiUDP::socketSendTo(
-    int fd,
-    const uint8_t ip6[16],
-    uint16_t port,
-    const uint8_t* buffer,
-    uint16_t size)
+//int WiFiUDP::socketSendTo(
+//    int fd,
+//    const uint8_t ip6[16],
+//    uint16_t port,
+//    const uint8_t* buffer,
+//    uint16_t size)
+int WiFiUDP::socketSendTo(int fd, const WiFiIPv6Endpoint* destination, const uint8_t* buffer, uint16_t size)
 {
-    if (fd < 0 || fd > 255 || !ip6 ||
+    if (fd < 0 || fd > 255 || !destination ||
         (!buffer && size != 0))
         return -1;
 
     return WiFiSocketDrv::socketSendTo(
-        (uint8_t)fd, ip6, port, buffer, size);
+        (uint8_t)fd, destination, buffer, size);
 }

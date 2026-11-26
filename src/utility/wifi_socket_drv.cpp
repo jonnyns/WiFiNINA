@@ -19,6 +19,37 @@
 
 #define SOCKET_JOIN_GROUP6 0x6B
 
+static void encodeEndpoint6(
+    uint8_t out[22],
+    const WiFiIPv6Endpoint* ep)
+{
+    out[0] = (uint8_t)(ep->port >> 8);
+    out[1] = (uint8_t)ep->port;
+
+    memcpy(out + 2, ep->addr, 16);
+
+    out[18] = (uint8_t)(ep->scope_id >> 24);
+    out[19] = (uint8_t)(ep->scope_id >> 16);
+    out[20] = (uint8_t)(ep->scope_id >> 8);
+    out[21] = (uint8_t)ep->scope_id;
+}
+
+static void decodeEndpoint6(
+    WiFiIPv6Endpoint* ep,
+    const uint8_t in[22])
+{
+    ep->port =
+        ((uint16_t)in[0] << 8) | in[1];
+
+    memcpy(ep->addr, in + 2, 16);
+
+    ep->scope_id =
+        ((uint32_t)in[18] << 24) |
+        ((uint32_t)in[19] << 16) |
+        ((uint32_t)in[20] << 8) |
+        (uint32_t)in[21];
+}
+
 bool WiFiSocketDrv::socketJoinGroup6(
     uint8_t sock,
     const uint8_t group[16])
@@ -130,16 +161,24 @@ uint8_t srcIp6[16] = {0};
 uint8_t srcPortBytes[2] = {0};
 uint8_t buffer[256] = {0};
 
-int WiFiSocketDrv::socketRecvFrom(
-    int fd,
-    uint8_t srcIp6[16],
-    uint16_t* srcPort,
-    uint8_t* buffer,
-    uint16_t bufferSize)
+
+  
+#if 0
+//int WiFiSocketDrv::socketRecvFrom(
+//    int fd,
+//    uint8_t srcIp6[16],
+//    uint16_t* srcPort,
+//		uint8_t dstIp6[16],
+//    uint8_t* buffer,
+//    uint16_t bufferSize)
+int WiFiSocketDrv::socketRecvFromXXX(int fd, WiFiIPv6Endpoint* source, WiFiIPv6Endpoint* destination, uint8_t* buffer, uint16_t bufferSize)
 {
   if (fd < 0 || fd > 255 ||
-        !srcIp6 || !srcPort || !buffer)
+        !source || !destination || !buffer)
         return -1;
+				
+	*source = {};
+	*destination = {};
 
   uint8_t domain = AF_INET6;
   uint8_t socket = (uint8_t)fd;
@@ -163,38 +202,133 @@ int WiFiSocketDrv::socketRecvFrom(
   SpiDrv::waitForSlaveReady();
   SpiDrv::spiSlaveSelect();
 
-  tDataCapacityParam params[3] = {
-        {0, 16, srcIp6},
+//  tDataCapacityParam params[4] = {
+//        {0, 16, srcIp6},
+//        {0, 2, srcPortBytes},
+//				{0, 16, dstIp6},
+//        {0, bufferSize, buffer}
+//  };
+	tDataCapacityParam params[4] = {
+        {0, 16, source->addr},
         {0, 2, srcPortBytes},
+				{0, 16, destination->addr},
         {0, bufferSize, buffer}
   };
 
   bool ok = SpiDrv::waitResponseParams16(
-        SOCKET_RECVFROM, 3, params);
+        SOCKET_RECVFROM, 4, params);
 
   SpiDrv::spiSlaveDeselect();
+	
+//	if (params[3].dataLen > 0) {
+//		Serial.println(ok);
+//		Serial.println(params[0].dataLen);
+//		Serial.println(params[1].dataLen);
+//		Serial.println(params[2].dataLen);
+//		Serial.println(params[3].dataLen);
+//	}
 
   if (!ok ||
         params[0].dataLen != 16 ||
         params[1].dataLen != 2 ||
+				params[2].dataLen != 16 ||
+        params[3].dataLen > bufferSize)
+        return -1;
+
+  source->port =
+        ((uint16_t)srcPortBytes[0] << 8) |
+        srcPortBytes[1];
+	
+	destination->port = 12345;	// FIXME
+				
+//	Serial.print(" X");
+//	Serial.print(params[3].dataLen);
+
+  return params[3].dataLen;
+}
+#endif
+
+int WiFiSocketDrv::socketRecvFrom(
+    int fd,
+    WiFiIPv6Endpoint* source,
+    WiFiIPv6Endpoint* destination,
+    uint8_t* buffer,
+    uint16_t bufferSize)
+{
+    if (fd < 0 || fd > 255 ||
+        !source || !destination || !buffer)
+        return -1;
+
+    *source = {};
+    *destination = {};
+
+    uint8_t sock = (uint8_t)fd;
+    uint8_t domain = AF_INET6;
+    uint8_t version = 1;
+
+    WAIT_FOR_SLAVE_SELECT();
+
+    SpiDrv::sendCmd(SOCKET_RECVFROM, PARAM_NUMS_4);
+
+    SpiDrv::sendParam(&sock, 1, NO_LAST_PARAM);
+    SpiDrv::sendParam(
+        (uint8_t*)&bufferSize, 2, NO_LAST_PARAM);
+    SpiDrv::sendParam(&domain, 1, NO_LAST_PARAM);
+    SpiDrv::sendParam(&version, 1, LAST_PARAM);
+
+    // 13 command bytes; pad to 16.
+    SpiDrv::readChar();
+    SpiDrv::readChar();
+    SpiDrv::readChar();
+
+    SpiDrv::spiSlaveDeselect();
+    SpiDrv::waitForSlaveReady();
+    SpiDrv::spiSlaveSelect();
+
+    uint8_t sourceWire[22] = {};
+    uint8_t destinationWire[22] = {};
+
+    tDataCapacityParam params[3] = {
+        {0, 22, sourceWire},
+        {0, 22, destinationWire},
+        {0, bufferSize, buffer}
+    };
+
+    bool ok = SpiDrv::waitResponseParams16(
+        SOCKET_RECVFROM, 3, params);
+
+    SpiDrv::spiSlaveDeselect();
+
+    if (!ok ||
+        params[0].dataLen != 22 ||
+        params[1].dataLen != 22 ||
         params[2].dataLen > bufferSize)
         return -1;
 
-  *srcPort =
-        ((uint16_t)srcPortBytes[0] << 8) |
-        srcPortBytes[1];
+    decodeEndpoint6(source, sourceWire);
+    decodeEndpoint6(destination, destinationWire);
 
-  return params[2].dataLen;
+    return params[2].dataLen;
 }
 
-int WiFiSocketDrv::socketSendTo(
-    uint8_t sock,
-    const uint8_t ip6[16],
-    uint16_t port,
-    const uint8_t* buffer,
-    uint16_t size)
+#if 0
+//int WiFiSocketDrv::socketSendTo(
+//    uint8_t sock,
+//    const uint8_t ip6[16],
+//    uint16_t port,
+//    const uint8_t* buffer,
+//    uint16_t size)
+int WiFiSocketDrv::socketSendToXXX(int fd, const WiFiIPv6Endpoint* destination, const uint8_t* buffer, uint16_t size)	
 {
-    uint8_t portBytes[2] = {
+    uint8_t socket = (uint8_t)fd;
+		uint16_t port = destination->port;
+		
+		if (fd < 0 || fd > 255 ||
+    !destination ||
+    (!buffer && size != 0))
+    return -1;
+		
+		uint8_t portBytes[2] = {
         (uint8_t)(port >> 8),
         (uint8_t)(port & 0xff)
     };
@@ -204,9 +338,9 @@ int WiFiSocketDrv::socketSendTo(
     SpiDrv::sendCmd(SOCKET_SENDTO, PARAM_NUMS_4);
 
     // All four request parameters have 16-bit lengths.
-    SpiDrv::sendBuffer(&sock, 1, NO_LAST_PARAM);
-    SpiDrv::sendBuffer(ip6, 16, NO_LAST_PARAM);
-    SpiDrv::sendBuffer(portBytes, 2, NO_LAST_PARAM);
+    SpiDrv::sendBuffer(&socket, 1, NO_LAST_PARAM);
+    SpiDrv::sendBuffer(&destination->addr[0], 16, NO_LAST_PARAM);
+    SpiDrv::sendBuffer(portBytes , 2, NO_LAST_PARAM);
     SpiDrv::sendBuffer(buffer, size, LAST_PARAM);
 
     // Total command length = 31 + size.
@@ -226,6 +360,62 @@ int WiFiSocketDrv::socketSendTo(
 
     bool ok = SpiDrv::waitResponseCmd(
         SOCKET_SENDTO, PARAM_NUMS_1, result, &len);
+
+    SpiDrv::spiSlaveDeselect();
+
+    if (!ok || len != 2)
+        return -1;
+
+    return ((uint16_t)result[0] << 8) | result[1];
+}
+#endif
+
+int WiFiSocketDrv::socketSendTo(
+    int fd,
+    const WiFiIPv6Endpoint* destination,
+    const uint8_t* buffer,
+    uint16_t size)
+{
+    if (fd < 0 || fd > 255 ||
+        !destination || (!buffer && size != 0))
+        return -1;
+
+    uint8_t sock = (uint8_t)fd;
+    uint8_t destinationWire[22];
+
+    encodeEndpoint6(destinationWire, destination);
+
+    WAIT_FOR_SLAVE_SELECT();
+
+    SpiDrv::sendCmd(SOCKET_SENDTO, PARAM_NUMS_3);
+
+    SpiDrv::sendBuffer(
+        &sock, 1, NO_LAST_PARAM);
+
+    SpiDrv::sendBuffer(
+        destinationWire, 22, NO_LAST_PARAM);
+
+    SpiDrv::sendBuffer(
+        buffer, size, LAST_PARAM);
+
+    // Unpadded command size = 33 + payload size.
+    uint32_t commandSize = 33UL + size;
+
+    while (commandSize % 4) {
+        SpiDrv::readChar();
+        commandSize++;
+    }
+
+    SpiDrv::spiSlaveDeselect();
+    SpiDrv::waitForSlaveReady();
+    SpiDrv::spiSlaveSelect();
+
+    uint8_t result[2] = {};
+    uint8_t len = 0;
+
+    bool ok = SpiDrv::waitResponseCmd(
+        SOCKET_SENDTO, PARAM_NUMS_1,
+        result, &len);
 
     SpiDrv::spiSlaveDeselect();
 
