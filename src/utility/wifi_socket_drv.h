@@ -15,12 +15,13 @@ class WiFiSocketDrv {
 public:
   static bool socketJoinGroup6(uint8_t sock, const uint8_t group[16]);
   static int socket(uint8_t domain, uint8_t type, uint8_t protocol);
-  static bool socketBind(uint8_t sock, const uint8_t ip6[16], uint16_t port);
+	static bool socketBind(int fd, const WiFiIPv6Endpoint* local);
+//  static bool socketBind(uint8_t sock, const uint8_t ip6[16], uint16_t port);
 //  static int socketRecvFrom(int fd, uint8_t srcIp6[16], uint16_t* srcPort, uint8_t dstIp6[16], uint8_t* buffer, uint16_t bufferSize);
 //  static int socketSendTo(uint8_t sock, const uint8_t ip6[16], uint16_t port, const uint8_t* buffer, uint16_t size);
-	static int socketRecvFrom(int fd, WiFiIPv6Endpoint* source, WiFiIPv6Endpoint* destination, uint8_t* buffer, uint16_t bufferSize);
+  static int socketRecvFrom(int fd, WiFiIPv6Endpoint* source, WiFiIPv6Endpoint* destination, uint8_t* buffer, uint16_t bufferSize);
   static int socketSendTo(int fd, const WiFiIPv6Endpoint* destination, const uint8_t* buffer, uint16_t size);
-//  static bool close(uint8_t sock);
+  static bool socketClose(int fd);
 
   friend class WiFiUDP;
 };

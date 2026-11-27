@@ -265,13 +265,13 @@ int WiFiUDP::socket(int domain, int type, int protocol)
     return WiFiSocketDrv::socket(domain, type, protocol);
 }
 
-bool WiFiUDP::socketBind(int fd, const uint8_t ip6[16], uint16_t port)
+//bool WiFiUDP::socketBind(int fd, const uint8_t ip6[16], uint16_t port)
+bool WiFiUDP::socketBind(int fd, const WiFiIPv6Endpoint* local)
 {
-		if (fd < 0 || fd > 255)
+		if (fd < 0 || fd > 255 || !local)
         return false;
 
-    return WiFiSocketDrv::socketBind(
-        (uint8_t)fd, ip6, port);
+    return WiFiSocketDrv::socketBind((uint8_t)fd, local);
 }
 
 
@@ -308,4 +308,12 @@ int WiFiUDP::socketSendTo(int fd, const WiFiIPv6Endpoint* destination, const uin
 
     return WiFiSocketDrv::socketSendTo(
         (uint8_t)fd, destination, buffer, size);
+}
+
+bool WiFiUDP::close(int fd)
+{
+  if (fd < 0 || fd > 255)
+    return -1;
+	
+	return WiFiSocketDrv::socketClose(fd);
 }

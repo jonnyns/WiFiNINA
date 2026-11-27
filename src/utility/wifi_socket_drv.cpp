@@ -89,7 +89,7 @@ bool WiFiSocketDrv::socketJoinGroup6(
 
     return ok && len == 1 && result == 1;
 }
-    
+  
 int WiFiSocketDrv::socket(uint8_t domain, uint8_t type, uint8_t protocol)
 {
     uint8_t sock = 255;
@@ -120,8 +120,48 @@ int WiFiSocketDrv::socket(uint8_t domain, uint8_t type, uint8_t protocol)
     return (ok && len == 1 && sock != 255) ? sock : -1;
 }
 
-bool WiFiSocketDrv::socketBind(
-    uint8_t sock, const uint8_t ip6[16], uint16_t port)
+bool WiFiSocketDrv::socketBind(int fd, const WiFiIPv6Endpoint* local)
+{
+    if (!local)
+        return false;
+			
+		uint8_t sock = (uint8_t)fd;
+    uint8_t endpointWire[22];
+    encodeEndpoint6(endpointWire, local);
+
+    WAIT_FOR_SLAVE_SELECT();
+
+    SpiDrv::sendCmd(SOCKET_BIND, PARAM_NUMS_2);
+
+    SpiDrv::sendParam(&sock, 1, NO_LAST_PARAM);
+    SpiDrv::sendParam(endpointWire, 22, LAST_PARAM);
+
+    // 3 header + 2 socket + 23 endpoint + 1 END
+    // = 29 bytes, pad to 32.
+    SpiDrv::readChar();
+    SpiDrv::readChar();
+    SpiDrv::readChar();
+
+    SpiDrv::spiSlaveDeselect();
+    SpiDrv::waitForSlaveReady();
+    SpiDrv::spiSlaveSelect();
+
+    uint8_t result = 0;
+    uint8_t len = 0;
+
+    bool ok = SpiDrv::waitResponseCmd(
+        SOCKET_BIND, PARAM_NUMS_1,
+        &result, &len);
+
+    SpiDrv::spiSlaveDeselect();
+
+    return ok && len == 1 && result == 1;
+}
+
+#if 0
+//bool WiFiSocketDrv::socketBind(
+//    uint8_t sock, const uint8_t ip6[16], uint16_t port)
+bool socketBind(uint8_t sock, const WiFiIPv6Endpoint* local)
 {
     uint8_t portBytes[2] = {
         (uint8_t)(port >> 8),
@@ -154,6 +194,7 @@ bool WiFiSocketDrv::socketBind(
 
     return ok && len == 1 && result == 1;
 }
+#endif
 
 #define AF_INET6        10	// FIXME
 #define BUFFER_SIZE	256
@@ -425,8 +466,33 @@ int WiFiSocketDrv::socketSendTo(
     return ((uint16_t)result[0] << 8) | result[1];
 }
 
-//bool WiFiSocketDrv::close(uint8_t sock)
-//{
-//			return 0;	// FIXME
-//}
+bool WiFiSocketDrv::socketClose(int fd)
+{
+    uint8_t sock = (uint8_t)fd;
+		
+		WAIT_FOR_SLAVE_SELECT();
+
+    SpiDrv::sendCmd(SOCKET_CLOSE, PARAM_NUMS_1);
+    SpiDrv::sendParam(&sock, 1, LAST_PARAM);
+
+    // 3 header + 2 parameter + 1 END = 6 bytes.
+    // Pad to 8.
+    SpiDrv::readChar();
+    SpiDrv::readChar();
+
+    SpiDrv::spiSlaveDeselect();
+    SpiDrv::waitForSlaveReady();
+    SpiDrv::spiSlaveSelect();
+
+    uint8_t result = 0;
+    uint8_t len = 0;
+
+    bool ok = SpiDrv::waitResponseCmd(
+        SOCKET_CLOSE, PARAM_NUMS_1,
+        &result, &len);
+
+    SpiDrv::spiSlaveDeselect();
+
+    return ok && len == 1 && result == 1;
+}
 

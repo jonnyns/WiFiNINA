@@ -88,11 +88,13 @@ public:
 	int socket(int domain, int type, int protocol);
 	
 	bool socketJoinGroup6(int fd, const uint8_t group[16]);
-	bool socketBind(int fd, const uint8_t ip6[16], uint16_t port);
+	bool socketBind(int fd, const WiFiIPv6Endpoint* local);
+//	bool socketBind(int fd, const uint8_t ip6[16], uint16_t port);
 //	int socketRecvFrom(int fd, uint8_t srcIp6[16], uint16_t* srcPort, uint8_t dstIp6[16], uint8_t* buffer, uint16_t bufferSize);
 //	int socketSendTo(int fd, const uint8_t ip6[16], uint16_t port, const uint8_t* buffer, uint16_t size);
   int socketRecvFrom(int fd, WiFiIPv6Endpoint* source, WiFiIPv6Endpoint* destination, uint8_t* buffer, uint16_t bufferSize);
   int socketSendTo(int fd, const WiFiIPv6Endpoint* destination, const uint8_t* buffer, uint16_t size);
+	bool close(int fd);
 
   friend class WiFiDrv;
 	friend class WiFiSocketDrv;
